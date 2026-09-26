@@ -201,6 +201,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   /**
    * Constructs a WebSocketClient instance and sets it to the connect to the specified URI. The
    * channel does not attampt to connect automatically. The connection will be established once you
+   * call <var>connect</var>.
    *
    * @param serverUri      the server URI to connect to
    * @param protocolDraft  The draft which should be used for this connection
@@ -577,7 +578,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   private void upgradeSocketToSSL()
       throws NoSuchAlgorithmException, KeyManagementException, IOException {
     SSLSocketFactory factory;
-    // Prioritse the provided socketfactory
+    // Prioritise the provided socketfactory
     // Helps when using web debuggers like Fiddler Classic
     if (socketFactory instanceof SSLSocketFactory) {
       factory = (SSLSocketFactory) socketFactory;
@@ -863,8 +864,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
           ostream.flush();
         }
       } catch (InterruptedException e) {
-        for (ByteBuffer buffer = engine.outQueue.poll(); buffer != null;
-            buffer = engine.outQueue.poll()) {
+        for (ByteBuffer buffer : engine.outQueue) {
           ostream.write(buffer.array(), 0, buffer.limit());
           ostream.flush();
         }
@@ -896,7 +896,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
     if (proxy == null) {
       throw new IllegalArgumentException();
     }
-    this.props = proxy;
+    this.proxy = proxy;
   }
 
   /**
