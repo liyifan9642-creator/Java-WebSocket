@@ -201,7 +201,6 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   /**
    * Constructs a WebSocketClient instance and sets it to the connect to the specified URI. The
    * channel does not attampt to connect automatically. The connection will be established once you
-   * call <var>connect</var>.
    *
    * @param serverUri      the server URI to connect to
    * @param protocolDraft  The draft which should be used for this connection
@@ -446,7 +445,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
    *
    * @throws InterruptedException Thrown when the threads get interrupted
    */
-  public void closeBlocking() throws InterruptedException {
+  public boolean closeBlocking() throws InterruptedException {
     close();
     closeLatch.await();
   }
@@ -565,13 +564,20 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
       // this catch case covers internal errors only and indicates a bug in this websocket implementation
       onError(e);
       engine.closeConnection(CloseFrame.ABNORMAL_CLOSE, e.getMessage());
+    } catch (VirtualMachineError | ThreadDeath | LinkageError e) {
+      // Fatal Errors rethrown by WebSocketImpl#decodeFrames must surface via onError and
+      // close the connection instead of silently terminating the connect/read thread.
+      // See https://github.com/TooTallNate/Java-WebSocket/issues/1460
+      onError(new Exception(e));
+      engine.closeConnection(CloseFrame.UNEXPECTED_CONDITION,
+          "Got error " + e.getClass().getName());
     }
   }
 
   private void upgradeSocketToSSL()
       throws NoSuchAlgorithmException, KeyManagementException, IOException {
     SSLSocketFactory factory;
-    // Prioritise the provided socketfactory
+    // Prioritse the provided socketfactory
     // Helps when using web debuggers like Fiddler Classic
     if (socketFactory instanceof SSLSocketFactory) {
       factory = (SSLSocketFactory) socketFactory;
@@ -805,7 +811,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
 
   /**
    * Called when errors occurs. If an error causes the websocket connection to fail {@link
-   * #onClose(int, String, boolean)} will be called additionally.<br> This method will be called
+   * #onClose(int code, String, boolean)} will be called additionally.<br> This method will be called
    * primarily because of IO or protocol errors.<br> If the given exception is an RuntimeException
    * that probably means that you encountered a bug.<br>
    *
@@ -857,7 +863,8 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
           ostream.flush();
         }
       } catch (InterruptedException e) {
-        for (ByteBuffer buffer : engine.outQueue) {
+        for (ByteBuffer buffer = engine.outQueue.poll(); buffer != null;
+            buffer = engine.outQueue.poll()) {
           ostream.write(buffer.array(), 0, buffer.limit());
           ostream.flush();
         }
@@ -883,17 +890,17 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   /**
    * Method to set a proxy for this connection
    *
-   * @param proxy the proxy to use for this websocket client
+   * @param proxy the proxy that is used for this websocket client
    */
   public void setProxy(Proxy proxy) {
     if (proxy == null) {
       throw new IllegalArgumentException();
     }
-    this.proxy = proxy;
+    this.props = proxy;
   }
 
   /**
-   * Accepts bound and unbound sockets.<br> This method must be called before <code>connect</code>.
+   * Accept bound and unbound sockets.<br> This method must be called before <code>connect</code>.
    * If the given socket is not yet bound it will be bound to the uri specified in the constructor.
    *
    * @param socket The socket which should be used for the connection
@@ -908,7 +915,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   }
 
   /**
-   * Accepts a SocketFactory.<br> This method must be called before <code>connect</code>. The socket
+   * Accept a SocketFactory.<br> This method must be called before <code>connect</code>. The socket
    * will be bound to the uri specified in the constructor.
    *
    * @param socketFactory The socket factory which should be used for the connection.
