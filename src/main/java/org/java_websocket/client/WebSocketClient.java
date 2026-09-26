@@ -446,7 +446,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
    *
    * @throws InterruptedException Thrown when the threads get interrupted
    */
-  public boolean closeBlocking() throws InterruptedException {
+  public void closeBlocking() throws InterruptedException {
     close();
     closeLatch.await();
   }
@@ -812,7 +812,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
 
   /**
    * Called when errors occurs. If an error causes the websocket connection to fail {@link
-   * #onClose(int code, String, boolean)} will be called additionally.<br> This method will be called
+   * #onClose(int, String, boolean)} will be called additionally.<br> This method will be called
    * primarily because of IO or protocol errors.<br> If the given exception is an RuntimeException
    * that probably means that you encountered a bug.<br>
    *
@@ -890,7 +890,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   /**
    * Method to set a proxy for this connection
    *
-   * @param proxy the proxy that is used for this websocket client
+   * @param proxy the proxy to use for this websocket client
    */
   public void setProxy(Proxy proxy) {
     if (proxy == null) {
@@ -900,7 +900,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   }
 
   /**
-   * Accept bound and unbound sockets.<br> This method must be called before <code>connect</code>.
+   * Accepts bound and unbound sockets.<br> This method must be called before <code>connect</code>.
    * If the given socket is not yet bound it will be bound to the uri specified in the constructor.
    *
    * @param socket The socket which should be used for the connection
@@ -915,7 +915,7 @@ public abstract class WebSocketClient extends AbstractWebSocket implements Runna
   }
 
   /**
-   * Accept a SocketFactory.<br> This method must be called before <code>connect</code>. The socket
+   * Accepts a SocketFactory.<br> This method must be called before <code>connect</code>. The socket
    * will be bound to the uri specified in the constructor.
    *
    * @param socketFactory The socket factory which should be used for the connection.
