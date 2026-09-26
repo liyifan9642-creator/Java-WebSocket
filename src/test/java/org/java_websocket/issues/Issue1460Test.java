@@ -3,6 +3,7 @@ package org.java_websocket.issues;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -11,7 +12,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.client.WebSocketClient;
+import org.java_websocket.drafts.Draft;
 import org.java_websocket.drafts.Draft_6455;
+import org.java_websocket.extensions.IExtension;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.framing.Framedata;
 import org.java_websocket.handshake.ClientHandshake;
@@ -39,6 +42,28 @@ public class Issue1460Test {
     @Override
     public List<Framedata> translateFrame(ByteBuffer buffer) {
       throw new LinkageError("simulated fatal error during frame processing");
+    }
+
+    @Override
+    public Draft copyInstance() {
+      ArrayList<IExtension> newExtensions = new ArrayList<>();
+      for (IExtension knownExtension : getKnownExtensions()) {
+        newExtensions.add(knownExtension.copyInstance());
+      }
+      ArrayList<org.java_websocket.protocols.IProtocol> newProtocols = new ArrayList<>();
+      for (org.java_websocket.protocols.IProtocol knownProtocol : getKnownProtocols()) {
+        newProtocols.add(knownProtocol.copyInstance());
+      }
+      return new FatalErrorDraft(newExtensions, newProtocols, getMaxFrameSize());
+    }
+
+    FatalErrorDraft(List<IExtension> inputExtensions,
+        List<org.java_websocket.protocols.IProtocol> inputProtocols, int inputMaxFrameSize) {
+      super(inputExtensions, inputProtocols, inputMaxFrameSize);
+    }
+
+    FatalErrorDraft() {
+      super();
     }
   }
 
